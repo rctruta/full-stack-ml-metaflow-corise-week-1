@@ -10,9 +10,7 @@ from metaflow import (
 )
 from metaflow.cards import Table, Markdown, Artifact
 
-# TODO move your labeling function from earlier in the notebook here
-labeling_function = lambda row: 0
-
+labeling_function = lambda row: (row["rating"] > 4) + 0
 
 class BaselineNLPFlow(FlowSpec):
     # We can define input parameters to a Flow using Parameters
@@ -61,8 +59,25 @@ class BaselineNLPFlow(FlowSpec):
         "Compute the baseline"
 
         ### TODO: Fit and score a baseline model on the data, log the acc and rocauc as artifacts.
-        self.base_acc = 0.0
-        self.base_rocauc = 0.0
+
+        from sklearn.naive_bayes import MultinomialNB
+        from sklearn.metrics import accuracy_score, roc_auc_score
+
+        # Create and train a Multinomial Naive Bayes model
+        naive_bayes = MultinomialNB()
+        naive_bayes.fit(self.traindf['review'], self.traindf['label'])
+
+        # Make predictions on the test data
+        y_pred = naive_bayes.predict(self.valdf['review'])
+
+        # Calculate accuracy
+        self.base_acc = accuracy_score(self.valdf['label'], y_pred)
+ 
+        # Calculate ROC AUC
+        # Naive Bayes doesn't provide probability estimates directly, so we use decision_function
+        # to get scores, then calculate ROC AUC
+        y_scores = naive_bayes.decision_function(self.valdf['review'])
+        self.base_rocauc = roc_auc_score(y_test, y_scores)
 
         self.next(self.end)
 
