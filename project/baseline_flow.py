@@ -77,7 +77,7 @@ class BaselineNLPFlow(FlowSpec):
         # Naive Bayes doesn't provide probability estimates directly, so we use decision_function
         # to get scores, then calculate ROC AUC
         y_scores = naive_bayes.decision_function(self.valdf['review'])
-        self.base_rocauc = roc_auc_score(y_test, y_scores)
+        self.base_rocauc = roc_auc_score(self.valdf['label'], y_scores)
 
         self.next(self.end)
 
@@ -97,8 +97,10 @@ class BaselineNLPFlow(FlowSpec):
         # TODO: compute the false positive predictions where the baseline is 1 and the valdf label is 0.
         # TODO: display the false_positives dataframe using metaflow.cards
         # Documentation: https://docs.metaflow.org/api/cards#table
-
+        false_positives = self.valdf[(self.valdf.pred == 1) & (self.valdf['label'] == 0)]
+        current.card.append(Table.from_dataframe(false_positives))
         current.card.append(Markdown("## Examples of False Negatives"))
+        
         # TODO: compute the false positive predictions where the baseline is 0 and the valdf label is 1.
         # TODO: display the false_negatives dataframe using metaflow.cards
 
