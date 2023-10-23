@@ -58,27 +58,15 @@ class BaselineNLPFlow(FlowSpec):
     def baseline(self):
         "Compute the baseline"
 
-        ### TODO: Fit and score a baseline model on the data, log the acc and rocauc as artifacts.
+        ### Fit and score a baseline model on the data, log the acc and rocauc as artifacts.
 
-        from sklearn.naive_bayes import MultinomialNB
         from sklearn.metrics import accuracy_score, roc_auc_score
 
-        # Create and train a Multinomial Naive Bayes model
-        naive_bayes = MultinomialNB()
-        naive_bayes.fit(self.traindf['review'], self.traindf['label'])
-
-        # Make predictions on the test data
-        y_pred = naive_bayes.predict(self.valdf['review'])
-
-        # Calculate accuracy
-        self.base_acc = accuracy_score(self.valdf['label'], y_pred)
- 
-        # Calculate ROC AUC
-        # Naive Bayes doesn't provide probability estimates directly, so we use decision_function
-        # to get scores, then calculate ROC AUC
-        y_scores = naive_bayes.decision_function(self.valdf['review'])
-        self.base_rocauc = roc_auc_score(self.valdf['label'], y_scores)
-
+        self.valdf["base_pred"] = 1
+        self.base_acc = accuracy_score(self.valdf["label"], self.valdf["base_pred"])
+        self.base_acc = accuracy_score(self.valdf['label'], self.valdf["base_pred"])
+        self.base_rocauc = roc_auc_score(self.valdf['label'], self.valdf["base_pred"])
+        
         self.next(self.end)
 
     @card(
@@ -93,17 +81,16 @@ class BaselineNLPFlow(FlowSpec):
         current.card.append(Markdown("## Overall Accuracy"))
         current.card.append(Artifact(self.base_acc))
 
-        current.card.append(Markdown("## Examples of False Positives"))
-        # TODO: compute the false positive predictions where the baseline is 1 and the valdf label is 0.
-        # TODO: display the false_positives dataframe using metaflow.cards
-        # Documentation: https://docs.metaflow.org/api/cards#table
-        false_positives = self.valdf[(self.valdf.pred == 1) & (self.valdf['label'] == 0)]
+        current.card.append(Markdown("## Examples of False Positives when the baseline is 1 and the label is 0"))
+        # Compute the false positive predictions where the baseline is 1 and the valdf label is 0.
+        false_positives = self.valdf[(self.valdf['base_pred'] == 1) & (self.valdf['label'] == 0)]
         current.card.append(Table.from_dataframe(false_positives))
-        current.card.append(Markdown("## Examples of False Negatives"))
+                
+        current.card.append(Markdown("## Examples of False Positives when the baseline is 0 and the label is 1. There should be none."))
+        # Compute the false positive predictions where the baseline is 0 and the valdf label is 1.
+        false_positives = self.valdf[(self.valdf['base_pred'] == 0) & (self.valdf['label'] == 1)]
+        current.card.append(Table.from_dataframe(false_positives))
         
-        # TODO: compute the false positive predictions where the baseline is 0 and the valdf label is 1.
-        # TODO: display the false_negatives dataframe using metaflow.cards
-
 
 if __name__ == "__main__":
     BaselineNLPFlow()
